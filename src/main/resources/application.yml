@@ -1,0 +1,64 @@
+spring:
+  profiles:
+    active: dev
+  application:
+    name: stress-test-data
+  
+  # 数据源配置
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/stress_test_data?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&serverTimezone=GMT%2B8
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:123456}
+    
+  # Jackson配置
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+
+# MyBatis配置
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.ecommerce.loadtest.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+# 服务器配置
+server:
+  port: ${SERVER_PORT:8080}
+  servlet:
+    context-path: /stress-test-data
+
+# 日志配置
+logging:
+  level:
+    com.ecommerce.loadtest: DEBUG
+    org.springframework: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{50} - %msg%n"
+
+# 自定义配置
+stresstest:
+  # 数据处理配置
+  processing:
+    # 最大商品数量
+    max-product-count: ${MAX_PRODUCT_COUNT:300}
+    # 红包发放QPS限制
+    red-envelope-qps-limit: ${RED_ENVELOPE_QPS:300}
+    # 默认线程池大小
+    default-thread-pool-size: ${THREAD_POOL_SIZE:10}
+    
+  # 文件处理配置
+  file:
+    # 临时文件目录
+    temp-dir: ${TEMP_DIR:/tmp/stress-test-data}
+    # 文件保留天数
+    retention-days: ${FILE_RETENTION_DAYS:7}
+    
+  # 通知配置
+  notification:
+    # 邮件通知开关
+    email-enabled: ${EMAIL_ENABLED:false}
+    # 默认通知接收人
+    default-receiver: ${DEFAULT_RECEIVER:admin@example.com}

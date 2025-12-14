@@ -1,0 +1,64 @@
+# 开发环境配置
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/stress_test_data?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: root
+    password: 123456
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
+      auto-commit: true
+      idle-timeout: 30000
+      pool-name: StressTestDataHikariCP
+      max-lifetime: 1800000
+      connection-timeout: 30000
+      connection-test-query: SELECT 1
+
+# MyBatis配置
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.ecommerce.loadtest.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: true
+    lazy-loading-enabled: true
+    multiple-result-sets-enabled: true
+    use-column-label: true
+    use-generated-keys: true
+    auto-mapping-behavior: partial
+    auto-mapping-unknown-column-behavior: warning
+    default-executor-type: reuse
+    default-statement-timeout: 25
+    default-fetch-size: 100
+    safe-row-bounds-enabled: false
+    local-cache-scope: session
+    jdbc-type-for-null: other
+    lazy-load-trigger-methods: equals,clone,hashCode,toString
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+
+# 开发环境日志配置
+logging:
+  level:
+    com.ecommerce.loadtest: DEBUG
+    org.springframework.web: DEBUG
+    org.mybatis: DEBUG
+
+# 开发环境自定义配置
+stresstest:
+  config:
+    # 异步线程池配置
+    async_thread_pool_size: 10
+    async_thread_pool_max_size: 20
+    
+    # 红包发放限流配置
+    red_envelope_current_limiting: 300
+    
+    # 导出任务配置
+    export_task_timeout: 300
+    
+    # 产品查询配置
+    max_product_count: 1000
+    
+    # 批次处理配置
+    batch_timeout_minutes: 60

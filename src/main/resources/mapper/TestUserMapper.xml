@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ecommerce.loadtest.dao.TestUserMapper">
+
+    <resultMap id="BaseResultMap" type="com.ecommerce.loadtest.entity.TestUser">
+        <id column="uid" jdbcType="BIGINT" property="uid"/>
+        <result column="user_status" jdbcType="INTEGER" property="userStatus"/>
+        <result column="user_type" jdbcType="INTEGER" property="userType"/>
+        <result column="address_id" jdbcType="BIGINT" property="addressId"/>
+        <result column="ppu" jdbcType="VARCHAR" property="ppu"/>
+        <result column="platform_b_uid" jdbcType="BIGINT" property="platformBUid"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+        <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        uid, user_status, user_type, address_id, ppu, platform_b_uid, create_time, update_time
+    </sql>
+
+    <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
+        DELETE FROM test_user WHERE uid = #{uid,jdbcType=BIGINT}
+    </delete>
+
+    <insert id="insertSelective" parameterType="com.ecommerce.loadtest.entity.TestUser">
+        INSERT INTO test_user
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="uid != null">uid,</if>
+            <if test="userStatus != null">user_status,</if>
+            <if test="userType != null">user_type,</if>
+            <if test="addressId != null">address_id,</if>
+            <if test="ppu != null">ppu,</if>
+            <if test="platformBUid != null">platform_b_uid,</if>
+            create_time,
+            update_time
+        </trim>
+        <trim prefix="VALUES (" suffix=")" suffixOverrides=",">
+            <if test="uid != null">#{uid,jdbcType=BIGINT},</if>
+            <if test="userStatus != null">#{userStatus,jdbcType=INTEGER},</if>
+            <if test="userType != null">#{userType,jdbcType=INTEGER},</if>
+            <if test="addressId != null">#{addressId,jdbcType=BIGINT},</if>
+            <if test="ppu != null">#{ppu,jdbcType=VARCHAR},</if>
+            <if test="platformBUid != null">#{platformBUid,jdbcType=BIGINT},</if>
+            NOW(),
+            NOW()
+        </trim>
+    </insert>
+
+    <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM test_user
+        WHERE uid = #{uid,jdbcType=BIGINT}
+    </select>
+
+    <update id="updateByPrimaryKeySelective" parameterType="com.ecommerce.loadtest.entity.TestUser">
+        UPDATE test_user
+        <set>
+            <if test="userStatus != null">user_status = #{userStatus,jdbcType=INTEGER},</if>
+            <if test="userType != null">user_type = #{userType,jdbcType=INTEGER},</if>
+            <if test="addressId != null">address_id = #{addressId,jdbcType=BIGINT},</if>
+            <if test="ppu != null">ppu = #{ppu,jdbcType=VARCHAR},</if>
+            <if test="platformBUid != null">platform_b_uid = #{platformBUid,jdbcType=BIGINT},</if>
+            update_time = NOW()
+        </set>
+        WHERE uid = #{uid,jdbcType=BIGINT}
+    </update>
+
+    <select id="queryUserList" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM test_user
+        WHERE user_type = #{userType,jdbcType=INTEGER}
+        ORDER BY create_time DESC
+    </select>
+
+    <select id="selectUsersNeedFill" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM test_user
+        WHERE user_type = #{userType,jdbcType=INTEGER}
+          AND (ppu IS NULL OR ppu = '' OR address_id IS NULL)
+        ORDER BY create_time ASC
+    </select>
+
+</mapper>
