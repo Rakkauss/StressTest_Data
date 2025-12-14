@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ecommerce.loadtest.dao.TestBatchMapper">
+
+    <resultMap id="BaseResultMap" type="com.ecommerce.loadtest.entity.TestBatch">
+        <id column="batch_id" jdbcType="BIGINT" property="batchId"/>
+        <result column="create_user" jdbcType="VARCHAR" property="createUser"/>
+        <result column="create_time" jdbcType="BIGINT" property="createTime"/>
+        <result column="total_count" jdbcType="BIGINT" property="totalCount"/>
+        <result column="real_count" jdbcType="BIGINT" property="realCount"/>
+        <result column="batch_status" jdbcType="INTEGER" property="batchStatus"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        batch_id, create_user, create_time, total_count, real_count, batch_status
+    </sql>
+
+    <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
+        DELETE FROM test_batch WHERE batch_id = #{batchId,jdbcType=BIGINT}
+    </delete>
+
+    <insert id="insertSelective" parameterType="com.ecommerce.loadtest.entity.TestBatch" 
+            useGeneratedKeys="true" keyProperty="batchId">
+        INSERT INTO test_batch
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="createUser != null">create_user,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="totalCount != null">total_count,</if>
+            <if test="realCount != null">real_count,</if>
+            <if test="batchStatus != null">batch_status,</if>
+        </trim>
+        <trim prefix="VALUES (" suffix=")" suffixOverrides=",">
+            <if test="createUser != null">#{createUser,jdbcType=VARCHAR},</if>
+            <if test="createTime != null">#{createTime,jdbcType=BIGINT},</if>
+            <if test="totalCount != null">#{totalCount,jdbcType=BIGINT},</if>
+            <if test="realCount != null">#{realCount,jdbcType=BIGINT},</if>
+            <if test="batchStatus != null">#{batchStatus,jdbcType=INTEGER},</if>
+        </trim>
+    </insert>
+
+    <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM test_batch
+        WHERE batch_id = #{batchId,jdbcType=BIGINT}
+    </select>
+
+    <update id="updateByPrimaryKeySelective" parameterType="com.ecommerce.loadtest.entity.TestBatch">
+        UPDATE test_batch
+        <set>
+            <if test="createUser != null">create_user = #{createUser,jdbcType=VARCHAR},</if>
+            <if test="createTime != null">create_time = #{createTime,jdbcType=BIGINT},</if>
+            <if test="totalCount != null">total_count = #{totalCount,jdbcType=BIGINT},</if>
+            <if test="realCount != null">real_count = #{realCount,jdbcType=BIGINT},</if>
+            <if test="batchStatus != null">batch_status = #{batchStatus,jdbcType=INTEGER},</if>
+        </set>
+        WHERE batch_id = #{batchId,jdbcType=BIGINT}
+    </update>
+
+    <select id="selectBatchListByStatus" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM test_batch
+        WHERE batch_status = #{status,jdbcType=INTEGER}
+        ORDER BY create_time DESC
+    </select>
+
+    <select id="selectBatchStatistics" resultType="java.util.HashMap">
+        SELECT 
+            COUNT(*) as total_count,
+            SUM(CASE WHEN batch_status = 0 THEN 1 ELSE 0 END) as pending_count,
+            SUM(CASE WHEN batch_status = 1 THEN 1 ELSE 0 END) as running_count,
+            SUM(CASE WHEN batch_status = 2 THEN 1 ELSE 0 END) as completed_count,
+            SUM(total_count) as total_count_sum,
+            SUM(real_count) as real_count_sum
+        FROM test_batch
+        <where>
+            <if test="createUser != null and createUser != ''">
+                AND create_user = #{createUser,jdbcType=VARCHAR}
+            </if>
+        </where>
+    </select>
+
+</mapper>
+

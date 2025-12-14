@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
- * 测试用户控制器
+ * 测试用户控制器--管理压测测试用户
  * 
  * @author rakkaus
  */
