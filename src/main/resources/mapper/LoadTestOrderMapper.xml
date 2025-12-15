@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ecommerce.loadtest.dao.LoadTestOrderMapper">
+
+    <resultMap id="BaseResultMap" type="com.ecommerce.loadtest.entity.LoadTestOrder">
+        <id column="id" jdbcType="BIGINT" property="id"/>
+        <result column="order_id" jdbcType="BIGINT" property="orderId"/>
+        <result column="buyer_id" jdbcType="BIGINT" property="buyerId"/>
+        <result column="current_status" jdbcType="TINYINT" property="currentStatus"/>
+        <result column="business_line_id" jdbcType="BIGINT" property="businessLineId"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+        <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, order_id, buyer_id, current_status, business_line_id, create_time, update_time
+    </sql>
+
+    <insert id="insertSelective" parameterType="com.ecommerce.loadtest.entity.LoadTestOrder" 
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO load_test_order
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="orderId != null">order_id,</if>
+            <if test="buyerId != null">buyer_id,</if>
+            <if test="currentStatus != null">current_status,</if>
+            <if test="businessLineId != null">business_line_id,</if>
+            create_time,
+            update_time
+        </trim>
+        <trim prefix="VALUES (" suffix=")" suffixOverrides=",">
+            <if test="orderId != null">#{orderId,jdbcType=BIGINT},</if>
+            <if test="buyerId != null">#{buyerId,jdbcType=BIGINT},</if>
+            <if test="currentStatus != null">#{currentStatus,jdbcType=TINYINT},</if>
+            <if test="businessLineId != null">#{businessLineId,jdbcType=BIGINT},</if>
+            NOW(),
+            NOW()
+        </trim>
+    </insert>
+
+    <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM load_test_order
+        WHERE id = #{id,jdbcType=BIGINT}
+    </select>
+
+    <select id="selectByOrderId" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM load_test_order
+        WHERE order_id = #{orderId,jdbcType=BIGINT}
+    </select>
+
+    <update id="updateByPrimaryKeySelective" parameterType="com.ecommerce.loadtest.entity.LoadTestOrder">
+        UPDATE load_test_order
+        <set>
+            <if test="orderId != null">order_id = #{orderId,jdbcType=BIGINT},</if>
+            <if test="buyerId != null">buyer_id = #{buyerId,jdbcType=BIGINT},</if>
+            <if test="currentStatus != null">current_status = #{currentStatus,jdbcType=TINYINT},</if>
+            <if test="businessLineId != null">business_line_id = #{businessLineId,jdbcType=BIGINT},</if>
+            update_time = NOW()
+        </set>
+        WHERE id = #{id,jdbcType=BIGINT}
+    </update>
+
+    <update id="updateOrderStatus">
+        UPDATE load_test_order 
+        SET current_status = #{currentStatus,jdbcType=INTEGER}, update_time = NOW()
+        WHERE order_id = #{orderId,jdbcType=BIGINT}
+    </update>
+
+    <select id="selectOrderIdsByBuyerId" parameterType="java.lang.Long" resultType="java.lang.Long">
+        SELECT order_id
+        FROM load_test_order
+        WHERE buyer_id = #{buyerId,jdbcType=BIGINT}
+        ORDER BY create_time DESC
+    </select>
+
+    <select id="selectByBuyerId" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM load_test_order
+        WHERE buyer_id = #{buyerId,jdbcType=BIGINT}
+        ORDER BY create_time DESC
+    </select>
+
+    <select id="selectByConditions" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM load_test_order
+        <where>
+            <if test="buyerId != null">
+                AND buyer_id = #{buyerId,jdbcType=BIGINT}
+            </if>
+            <if test="currentStatus != null">
+                AND current_status = #{currentStatus,jdbcType=INTEGER}
+            </if>
+            <if test="businessLineId != null">
+                AND business_line_id = #{businessLineId,jdbcType=INTEGER}
+            </if>
+            <if test="startTime != null">
+                AND create_time >= #{startTime,jdbcType=TIMESTAMP}
+            </if>
+            <if test="endTime != null">
+                AND create_time &lt;= #{endTime,jdbcType=TIMESTAMP}
+            </if>
+        </where>
+        ORDER BY create_time DESC
+    </select>
+
+    <delete id="clearTable">
+        DELETE FROM load_test_order
+    </delete>
+
+    <delete id="deleteByDateString">
+        DELETE FROM load_test_order
+        WHERE DATE(update_time) = #{dateStr,jdbcType=VARCHAR}
+    </delete>
+
+    <insert id="batchInsert" parameterType="java.util.List">
+        INSERT INTO load_test_order (order_id, buyer_id, current_status, business_line_id, create_time, update_time)
+        VALUES
+        <foreach collection="orders" item="order" separator=",">
+            (#{order.orderId,jdbcType=BIGINT},
+             #{order.buyerId,jdbcType=BIGINT},
+             #{order.currentStatus,jdbcType=TINYINT},
+             #{order.businessLineId,jdbcType=BIGINT},
+             NOW(),
+             NOW())
+        </foreach>
+    </insert>
+
+</mapper>
