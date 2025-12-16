@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ecommerce.loadtest.dao.ProductMapper">
+
+    <resultMap id="BaseResultMap" type="com.ecommerce.loadtest.entity.Product">
+        <id column="product_id" jdbcType="BIGINT" property="productId"/>
+        <result column="product_name" jdbcType="VARCHAR" property="productName"/>
+        <result column="category_id" jdbcType="INTEGER" property="categoryId"/>
+        <result column="category_name" jdbcType="VARCHAR" property="categoryName"/>
+        <result column="business_line_id" jdbcType="INTEGER" property="businessLineId"/>
+        <result column="price" jdbcType="DECIMAL" property="price"/>
+        <result column="status" jdbcType="INTEGER" property="status"/>
+        <result column="stock_count" jdbcType="INTEGER" property="stockCount"/>
+        <result column="description" jdbcType="VARCHAR" property="description"/>
+        <result column="image_url" jdbcType="VARCHAR" property="imageUrl"/>
+        <result column="seller_id" jdbcType="BIGINT" property="sellerId"/>
+        <result column="seller_name" jdbcType="VARCHAR" property="sellerName"/>
+        <result column="tags" jdbcType="VARCHAR" property="tags"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+        <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        product_id, product_name, category_id, category_name, business_line_id, price, 
+        status, stock_count, description, image_url, seller_id, seller_name, tags, 
+        create_time, update_time
+    </sql>
+
+    <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
+        DELETE FROM product_info WHERE product_id = #{productId,jdbcType=BIGINT}
+    </delete>
+
+    <insert id="insertSelective" parameterType="com.ecommerce.loadtest.entity.Product">
+        INSERT INTO product_info
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="productId != null">product_id,</if>
+            <if test="productName != null">product_name,</if>
+            <if test="categoryId != null">category_id,</if>
+            <if test="categoryName != null">category_name,</if>
+            <if test="businessLineId != null">business_line_id,</if>
+            <if test="price != null">price,</if>
+            <if test="status != null">status,</if>
+            <if test="stockCount != null">stock_count,</if>
+            <if test="description != null">description,</if>
+            <if test="imageUrl != null">image_url,</if>
+            <if test="sellerId != null">seller_id,</if>
+            <if test="sellerName != null">seller_name,</if>
+            <if test="tags != null">tags,</if>
+            create_time,
+            update_time
+        </trim>
+        <trim prefix="VALUES (" suffix=")" suffixOverrides=",">
+            <if test="productId != null">#{productId,jdbcType=BIGINT},</if>
+            <if test="productName != null">#{productName,jdbcType=VARCHAR},</if>
+            <if test="categoryId != null">#{categoryId,jdbcType=INTEGER},</if>
+            <if test="categoryName != null">#{categoryName,jdbcType=VARCHAR},</if>
+            <if test="businessLineId != null">#{businessLineId,jdbcType=INTEGER},</if>
+            <if test="price != null">#{price,jdbcType=DECIMAL},</if>
+            <if test="status != null">#{status,jdbcType=INTEGER},</if>
+            <if test="stockCount != null">#{stockCount,jdbcType=INTEGER},</if>
+            <if test="description != null">#{description,jdbcType=VARCHAR},</if>
+            <if test="imageUrl != null">#{imageUrl,jdbcType=VARCHAR},</if>
+            <if test="sellerId != null">#{sellerId,jdbcType=BIGINT},</if>
+            <if test="sellerName != null">#{sellerName,jdbcType=VARCHAR},</if>
+            <if test="tags != null">#{tags,jdbcType=VARCHAR},</if>
+            NOW(),
+            NOW()
+        </trim>
+    </insert>
+
+    <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM product_info
+        WHERE product_id = #{productId,jdbcType=BIGINT}
+    </select>
+
+    <update id="updateByPrimaryKeySelective" parameterType="com.ecommerce.loadtest.entity.Product">
+        UPDATE product_info
+        <set>
+            <if test="productName != null">product_name = #{productName,jdbcType=VARCHAR},</if>
+            <if test="categoryId != null">category_id = #{categoryId,jdbcType=INTEGER},</if>
+            <if test="categoryName != null">category_name = #{categoryName,jdbcType=VARCHAR},</if>
+            <if test="businessLineId != null">business_line_id = #{businessLineId,jdbcType=INTEGER},</if>
+            <if test="price != null">price = #{price,jdbcType=DECIMAL},</if>
+            <if test="status != null">status = #{status,jdbcType=INTEGER},</if>
+            <if test="stockCount != null">stock_count = #{stockCount,jdbcType=INTEGER},</if>
+            <if test="description != null">description = #{description,jdbcType=VARCHAR},</if>
+            <if test="imageUrl != null">image_url = #{imageUrl,jdbcType=VARCHAR},</if>
+            <if test="sellerId != null">seller_id = #{sellerId,jdbcType=BIGINT},</if>
+            <if test="sellerName != null">seller_name = #{sellerName,jdbcType=VARCHAR},</if>
+            <if test="tags != null">tags = #{tags,jdbcType=VARCHAR},</if>
+            update_time = NOW()
+        </set>
+        WHERE product_id = #{productId,jdbcType=BIGINT}
+    </update>
+
+    <select id="selectProductsByConditions" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM product_info
+        <where>
+            <if test="categoryId != null">
+                AND category_id = #{categoryId,jdbcType=INTEGER}
+            </if>
+            <if test="businessLineId != null">
+                AND business_line_id = #{businessLineId,jdbcType=INTEGER}
+            </if>
+            <if test="minPrice != null">
+                AND price &gt;= #{minPrice,jdbcType=DECIMAL}
+            </if>
+            <if test="maxPrice != null">
+                AND price &lt;= #{maxPrice,jdbcType=DECIMAL}
+            </if>
+            <if test="status != null">
+                AND status = #{status,jdbcType=INTEGER}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND (product_name LIKE CONCAT('%', #{keyword,jdbcType=VARCHAR}, '%')
+                     OR description LIKE CONCAT('%', #{keyword,jdbcType=VARCHAR}, '%'))
+            </if>
+        </where>
+        ORDER BY create_time DESC
+        <if test="pageNo != null and pageSize != null">
+            LIMIT #{pageSize,jdbcType=INTEGER} OFFSET #{pageNo,jdbcType=INTEGER}
+        </if>
+    </select>
+
+    <select id="selectProductsByIds" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM product_info
+        WHERE product_id IN
+        <foreach collection="productIds" item="productId" open="(" separator="," close=")">
+            #{productId,jdbcType=BIGINT}
+        </foreach>
+        ORDER BY create_time DESC
+    </select>
+
+</mapper>
