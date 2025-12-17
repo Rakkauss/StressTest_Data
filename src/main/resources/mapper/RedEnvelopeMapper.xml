@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ecommerce.loadtest.dao.RedEnvelopeMapper">
+
+    <resultMap id="BaseResultMap" type="com.ecommerce.loadtest.entity.RedEnvelope">
+        <id column="receive_id" jdbcType="BIGINT" property="receiveId"/>
+        <result column="uid" jdbcType="BIGINT" property="uid"/>
+        <result column="red_envelope_id" jdbcType="BIGINT" property="redEnvelopeId"/>
+        <result column="receive_time" jdbcType="BIGINT" property="receiveTime"/>
+        <result column="batch_id" jdbcType="BIGINT" property="batchId"/>
+        <result column="amount" jdbcType="BIGINT" property="amount"/>
+        <result column="status" jdbcType="INTEGER" property="status"/>
+        <result column="platform_type" jdbcType="INTEGER" property="platformType"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+        <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        receive_id, uid, red_envelope_id, receive_time, batch_id, amount, status, platform_type, create_time, update_time
+    </sql>
+
+    <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
+        DELETE FROM red_envelope_record WHERE receive_id = #{receiveId,jdbcType=BIGINT}
+    </delete>
+
+    <insert id="insertSelective" parameterType="com.ecommerce.loadtest.entity.RedEnvelope" useGeneratedKeys="true" keyProperty="receiveId">
+        INSERT INTO red_envelope_record
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="uid != null">uid,</if>
+            <if test="redEnvelopeId != null">red_envelope_id,</if>
+            <if test="receiveTime != null">receive_time,</if>
+            <if test="batchId != null">batch_id,</if>
+            <if test="amount != null">amount,</if>
+            <if test="status != null">status,</if>
+            <if test="platformType != null">platform_type,</if>
+            create_time,
+            update_time
+        </trim>
+        <trim prefix="VALUES (" suffix=")" suffixOverrides=",">
+            <if test="uid != null">#{uid,jdbcType=BIGINT},</if>
+            <if test="redEnvelopeId != null">#{redEnvelopeId,jdbcType=BIGINT},</if>
+            <if test="receiveTime != null">#{receiveTime,jdbcType=BIGINT},</if>
+            <if test="batchId != null">#{batchId,jdbcType=BIGINT},</if>
+            <if test="amount != null">#{amount,jdbcType=BIGINT},</if>
+            <if test="status != null">#{status,jdbcType=INTEGER},</if>
+            <if test="platformType != null">#{platformType,jdbcType=INTEGER},</if>
+            NOW(),
+            NOW()
+        </trim>
+    </insert>
+
+    <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM red_envelope_record
+        WHERE receive_id = #{receiveId,jdbcType=BIGINT}
+    </select>
+
+    <update id="updateByPrimaryKeySelective" parameterType="com.ecommerce.loadtest.entity.RedEnvelope">
+        UPDATE red_envelope_record
+        <set>
+            <if test="uid != null">uid = #{uid,jdbcType=BIGINT},</if>
+            <if test="redEnvelopeId != null">red_envelope_id = #{redEnvelopeId,jdbcType=BIGINT},</if>
+            <if test="receiveTime != null">receive_time = #{receiveTime,jdbcType=BIGINT},</if>
+            <if test="batchId != null">batch_id = #{batchId,jdbcType=BIGINT},</if>
+            <if test="amount != null">amount = #{amount,jdbcType=BIGINT},</if>
+            <if test="status != null">status = #{status,jdbcType=INTEGER},</if>
+            <if test="platformType != null">platform_type = #{platformType,jdbcType=INTEGER},</if>
+            update_time = NOW()
+        </set>
+        WHERE receive_id = #{receiveId,jdbcType=BIGINT}
+    </update>
+
+    <select id="selectRedEnvelopeList" parameterType="com.ecommerce.loadtest.dto.RedEnvelopeQueryDTO" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM red_envelope_record
+        <where>
+            <if test="batchId != null">
+                AND batch_id = #{batchId,jdbcType=BIGINT}
+            </if>
+            <if test="redEnvelopeId != null">
+                AND red_envelope_id = #{redEnvelopeId,jdbcType=BIGINT}
+            </if>
+            <if test="uid != null">
+                AND uid = #{uid,jdbcType=BIGINT}
+            </if>
+            <if test="status != null">
+                AND status = #{status,jdbcType=INTEGER}
+            </if>
+            <if test="platformType != null">
+                AND platform_type = #{platformType,jdbcType=INTEGER}
+            </if>
+            <if test="startTime != null">
+                AND receive_time >= #{startTime,jdbcType=BIGINT}
+            </if>
+            <if test="endTime != null">
+                AND receive_time &lt;= #{endTime,jdbcType=BIGINT}
+            </if>
+        </where>
+        ORDER BY create_time DESC
+        <if test="pageSize != null and pageSize > 0">
+            LIMIT #{pageSize,jdbcType=INTEGER}
+        </if>
+    </select>
+
+    <select id="selectByBatchId" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM red_envelope_record
+        WHERE batch_id = #{batchId,jdbcType=BIGINT}
+        ORDER BY create_time DESC
+    </select>
+
+    <select id="selectByUid" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM red_envelope_record
+        WHERE uid = #{uid,jdbcType=BIGINT}
+        ORDER BY create_time DESC
+    </select>
+
+    <insert id="batchInsert" parameterType="java.util.List">
+        INSERT INTO red_envelope_record (uid, red_envelope_id, receive_time, batch_id, amount, status, platform_type, create_time, update_time)
+        VALUES
+        <foreach collection="records" item="item" separator=",">
+            (#{item.uid,jdbcType=BIGINT}, #{item.redEnvelopeId,jdbcType=BIGINT}, #{item.receiveTime,jdbcType=BIGINT},
+             #{item.batchId,jdbcType=BIGINT}, #{item.amount,jdbcType=BIGINT}, #{item.status,jdbcType=INTEGER},
+             #{item.platformType,jdbcType=INTEGER}, NOW(), NOW())
+        </foreach>
+    </insert>
+
+    <select id="selectBatchStatistics" parameterType="java.lang.Long" resultType="java.util.HashMap">
+        SELECT 
+            COUNT(*) as total_count,
+            SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) as received_count,
+            SUM(CASE WHEN status = 0 THEN 1 ELSE 0 END) as pending_count,
+            SUM(amount) as total_amount,
+            AVG(amount) as avg_amount,
+            MAX(amount) as max_amount,
+            MIN(amount) as min_amount,
+            COUNT(DISTINCT uid) as user_count
+        FROM red_envelope_record
+        WHERE batch_id = #{batchId,jdbcType=BIGINT}
+    </select>
+
+</mapper>
