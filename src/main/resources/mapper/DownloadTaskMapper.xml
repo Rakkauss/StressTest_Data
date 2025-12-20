@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ecommerce.loadtest.dao.DownloadTaskMapper">
+
+    <resultMap id="BaseResultMap" type="com.ecommerce.loadtest.entity.DownloadTask">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="task_name" property="taskName" jdbcType="VARCHAR"/>
+        <result column="file_name" property="fileName" jdbcType="VARCHAR"/>
+        <result column="file_url" property="fileUrl" jdbcType="VARCHAR"/>
+        <result column="task_status" property="taskStatus" jdbcType="INTEGER"/>
+        <result column="total_count" property="totalCount" jdbcType="BIGINT"/>
+        <result column="processed_count" property="processedCount" jdbcType="BIGINT"/>
+        <result column="error_message" property="errorMessage" jdbcType="LONGVARCHAR"/>
+        <result column="create_user" property="createUser" jdbcType="VARCHAR"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="complete_time" property="completeTime" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, task_name, file_name, file_url, task_status, total_count, processed_count,
+        error_message, create_user, create_time, complete_time
+    </sql>
+
+    <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM download_task
+        WHERE id = #{id,jdbcType=BIGINT}
+    </select>
+
+    <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
+        DELETE FROM download_task WHERE id = #{id,jdbcType=BIGINT}
+    </delete>
+
+    <insert id="insertSelective" parameterType="com.ecommerce.loadtest.entity.DownloadTask" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO download_task
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="taskName != null">task_name,</if>
+            <if test="fileName != null">file_name,</if>
+            <if test="fileUrl != null">file_url,</if>
+            <if test="taskStatus != null">task_status,</if>
+            <if test="totalCount != null">total_count,</if>
+            <if test="processedCount != null">processed_count,</if>
+            <if test="errorMessage != null">error_message,</if>
+            <if test="createUser != null">create_user,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="completeTime != null">complete_time,</if>
+        </trim>
+        <trim prefix="VALUES (" suffix=")" suffixOverrides=",">
+            <if test="taskName != null">#{taskName,jdbcType=VARCHAR},</if>
+            <if test="fileName != null">#{fileName,jdbcType=VARCHAR},</if>
+            <if test="fileUrl != null">#{fileUrl,jdbcType=VARCHAR},</if>
+            <if test="taskStatus != null">#{taskStatus,jdbcType=INTEGER},</if>
+            <if test="totalCount != null">#{totalCount,jdbcType=BIGINT},</if>
+            <if test="processedCount != null">#{processedCount,jdbcType=BIGINT},</if>
+            <if test="errorMessage != null">#{errorMessage,jdbcType=LONGVARCHAR},</if>
+            <if test="createUser != null">#{createUser,jdbcType=VARCHAR},</if>
+            <if test="createTime != null">#{createTime,jdbcType=TIMESTAMP},</if>
+            <if test="completeTime != null">#{completeTime,jdbcType=TIMESTAMP},</if>
+        </trim>
+    </insert>
+
+    <update id="updateByPrimaryKeySelective" parameterType="com.ecommerce.loadtest.entity.DownloadTask">
+        UPDATE download_task
+        <set>
+            <if test="taskName != null">task_name = #{taskName,jdbcType=VARCHAR},</if>
+            <if test="fileName != null">file_name = #{fileName,jdbcType=VARCHAR},</if>
+            <if test="fileUrl != null">file_url = #{fileUrl,jdbcType=VARCHAR},</if>
+            <if test="taskStatus != null">task_status = #{taskStatus,jdbcType=INTEGER},</if>
+            <if test="totalCount != null">total_count = #{totalCount,jdbcType=BIGINT},</if>
+            <if test="processedCount != null">processed_count = #{processedCount,jdbcType=BIGINT},</if>
+            <if test="errorMessage != null">error_message = #{errorMessage,jdbcType=LONGVARCHAR},</if>
+            <if test="createUser != null">create_user = #{createUser,jdbcType=VARCHAR},</if>
+            <if test="createTime != null">create_time = #{createTime,jdbcType=TIMESTAMP},</if>
+            <if test="completeTime != null">complete_time = #{completeTime,jdbcType=TIMESTAMP},</if>
+        </set>
+        WHERE id = #{id,jdbcType=BIGINT}
+    </update>
+
+    <select id="selectUserDownloadTasks" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM download_task
+        <where>
+            <if test="createUser != null and createUser != ''">
+                AND create_user = #{createUser,jdbcType=VARCHAR}
+            </if>
+            <if test="status != null">
+                AND task_status = #{status,jdbcType=INTEGER}
+            </if>
+        </where>
+        ORDER BY create_time DESC
+        <if test="limit != null and limit > 0">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <select id="selectPendingTasks" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM download_task
+        WHERE task_status = 0
+        ORDER BY create_time ASC
+        <if test="limit != null and limit > 0">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <select id="selectTimeoutTasks" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM download_task
+        WHERE task_status = 0
+          AND create_time &lt; DATE_SUB(NOW(), INTERVAL #{timeoutMinutes} MINUTE)
+        ORDER BY create_time ASC
+    </select>
+
+    <update id="batchUpdateTaskStatus">
+        UPDATE download_task
+        SET task_status = #{status,jdbcType=INTEGER}
+        WHERE id IN
+        <foreach collection="taskIds" item="taskId" open="(" separator="," close=")">
+            #{taskId}
+        </foreach>
+    </update>
+
+    <delete id="cleanupExpiredTasks" parameterType="java.lang.Integer">
+        DELETE FROM download_task
+        WHERE task_status IN (1, 2)
+          AND complete_time IS NOT NULL
+          AND complete_time &lt; DATE_SUB(NOW(), INTERVAL #{retentionDays} DAY)
+    </delete>
+
+    <select id="selectTaskStatistics" parameterType="java.lang.String" resultType="java.util.Map">
+        SELECT
+            COUNT(*)               AS total_tasks,
+            COUNT(CASE WHEN task_status = 0 THEN 1 END) AS pending_tasks,
+            COUNT(CASE WHEN task_status = 1 THEN 1 END) AS success_tasks,
+            COUNT(CASE WHEN task_status = 2 THEN 1 END) AS failed_tasks,
+            COALESCE(SUM(total_count), 0)      AS total_records,
+            COALESCE(SUM(processed_count), 0)  AS processed_records
+        FROM download_task
+        <where>
+            <if test="createUser != null and createUser != ''">
+                create_user = #{createUser,jdbcType=VARCHAR}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectTaskExecutionDetails" parameterType="java.lang.Long" resultType="java.util.Map">
+        SELECT
+            id,
+            task_name,
+            file_name,
+            file_url,
+            task_status,
+            total_count,
+            processed_count,
+            error_message,
+            create_user,
+            create_time,
+            complete_time
+        FROM download_task
+        WHERE id = #{taskId,jdbcType=BIGINT}
+    </select>
+
+    <insert id="batchInsert" parameterType="java.util.List" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO download_task (
+            task_name, file_name, file_url, task_status, total_count,
+            processed_count, error_message, create_user, create_time
+        )
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.taskName,jdbcType=VARCHAR},
+                #{item.fileName,jdbcType=VARCHAR},
+                #{item.fileUrl,jdbcType=VARCHAR},
+                #{item.taskStatus,jdbcType=INTEGER},
+                #{item.totalCount,jdbcType=BIGINT},
+                #{item.processedCount,jdbcType=BIGINT},
+                #{item.errorMessage,jdbcType=LONGVARCHAR},
+                #{item.createUser,jdbcType=VARCHAR},
+                #{item.createTime,jdbcType=TIMESTAMP}
+            )
+        </foreach>
+    </insert>
+
+    <update id="updateTaskProgress">
+        UPDATE download_task
+        SET processed_count = #{processedCount,jdbcType=BIGINT}
+        WHERE id = #{taskId,jdbcType=BIGINT}
+    </update>
+
+    <update id="completeTask">
+        UPDATE download_task
+        SET task_status = #{status,jdbcType=INTEGER},
+            complete_time = NOW(),
+            file_url = #{fileUrl,jdbcType=VARCHAR},
+            error_message = #{errorMessage,jdbcType=LONGVARCHAR}
+        WHERE id = #{taskId,jdbcType=BIGINT}
+    </update>
+
+    <select id="selectRecentTasks" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM download_task
+        ORDER BY create_time DESC
+        <if test="limit != null and limit > 0">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <select id="countTasksByStatus" resultType="java.util.Map">
+        SELECT
+            task_status,
+            COUNT(*) AS task_count,
+            COALESCE(SUM(total_count), 0)     AS total_records,
+            COALESCE(SUM(processed_count), 0) AS processed_records
+        FROM download_task
+        GROUP BY task_status
+        ORDER BY task_status
+    </select>
+
+    <select id="selectLongRunningTasks" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM download_task
+        WHERE task_status = 0
+          AND TIMESTAMPDIFF(MINUTE, create_time, NOW()) > #{minutes}
+        ORDER BY create_time ASC
+    </select>
+
+</mapper>
