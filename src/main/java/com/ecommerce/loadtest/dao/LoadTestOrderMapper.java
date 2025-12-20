@@ -41,4 +41,9 @@ public interface LoadTestOrderMapper {
     int deleteByDateString(@Param("dateStr") String dateStr);
     
     int batchInsert(@Param("orders") List<LoadTestOrder> orders);
+    
+    List<java.util.Map<String, Object>> selectOrderDataForExport(@Param("startTime") String startTime,
+                                                                 @Param("endTime") String endTime,
+                                                                 @Param("currentStatus") Integer currentStatus,
+                                                                 @Param("businessLineId") Long businessLineId);
 }

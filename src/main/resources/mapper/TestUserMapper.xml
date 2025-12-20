@@ -80,4 +80,44 @@
         ORDER BY create_time ASC
     </select>
 
+    <select id="selectUserDataForExport" resultType="java.util.Map">
+        SELECT
+            uid,
+            user_type,
+            user_status,
+            address_id,
+            ppu,
+            platform_b_uid,
+            create_time,
+            update_time
+        FROM test_user
+        <where>
+            <if test="userType != null">
+                AND user_type = #{userType,jdbcType=INTEGER}
+            </if>
+            <if test="userStatus != null">
+                AND user_status = #{userStatus,jdbcType=INTEGER}
+            </if>
+        </where>
+        ORDER BY create_time DESC
+    </select>
+
+    <select id="selectUserStatistics" parameterType="java.lang.Integer" resultType="java.util.Map">
+        SELECT
+            user_type,
+            user_status,
+            COUNT(*) as count,
+            SUM(CASE WHEN ppu IS NOT NULL AND ppu != '' THEN 1 ELSE 0 END) as has_ppu_count,
+            SUM(CASE WHEN address_id IS NOT NULL THEN 1 ELSE 0 END) as has_address_count,
+            SUM(CASE WHEN platform_b_uid IS NOT NULL THEN 1 ELSE 0 END) as platform_b_count
+        FROM test_user
+        <where>
+            <if test="userType != null">
+                AND user_type = #{userType,jdbcType=INTEGER}
+            </if>
+        </where>
+        GROUP BY user_type, user_status
+        ORDER BY user_type, user_status
+    </select>
+
 </mapper>

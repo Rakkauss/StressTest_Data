@@ -33,4 +33,8 @@ public interface RedEnvelopeMapper {
     int batchInsert(@Param("records") List<RedEnvelope> records);
     
     Map<String, Object> selectBatchStatistics(@Param("batchId") Long batchId);
+    
+    List<java.util.Map<String, Object>> selectRedEnvelopeDataForExport(@Param("batchId") Long batchId,
+                                                                       @Param("status") Integer status,
+                                                                       @Param("platformType") Integer platformType);
 }

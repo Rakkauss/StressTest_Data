@@ -80,5 +80,25 @@
         </where>
     </select>
 
+    <select id="selectBatchDataForExport" resultType="java.util.Map">
+        SELECT
+            batch_id,
+            create_user,
+            create_time,
+            total_count,
+            real_count,
+            batch_status
+        FROM test_batch
+        <where>
+            <if test="status != null">
+                AND batch_status = #{status,jdbcType=INTEGER}
+            </if>
+            <if test="createUser != null and createUser != ''">
+                AND create_user = #{createUser,jdbcType=VARCHAR}
+            </if>
+        </where>
+        ORDER BY create_time DESC
+    </select>
+
 </mapper>
 

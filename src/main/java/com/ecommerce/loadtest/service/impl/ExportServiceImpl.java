@@ -121,7 +121,7 @@ public class ExportServiceImpl implements ExportService {
 
             CompletableFuture.runAsync(() -> {
                 try {
-                    List<Map<String, Object>> data = redEnvelopeMapper.selectRedEnvelopeDataForExport(batchId, status, platformType);
+                    List<Map<String, Object>> data = redEnvelopeMapper.selectRedEnvelopeDataForExport(batchId, platformType, status);
                     String fileUrl = mockGenerateFile(data, exportFormat, task.getFileName());
                     downloadService.completeTask(taskId, 1, fileUrl, null);
                 } catch (Exception e) {

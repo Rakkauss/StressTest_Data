@@ -127,4 +127,31 @@
         </foreach>
     </insert>
 
+    <select id="selectOrderDataForExport" resultType="java.util.Map">
+        SELECT
+            id,
+            order_id,
+            buyer_id,
+            current_status,
+            business_line_id,
+            create_time,
+            update_time
+        FROM load_test_order
+        <where>
+            <if test="startTime != null and startTime != ''">
+                AND DATE(create_time) >= #{startTime,jdbcType=VARCHAR}
+            </if>
+            <if test="endTime != null and endTime != ''">
+                AND DATE(create_time) &lt;= #{endTime,jdbcType=VARCHAR}
+            </if>
+            <if test="currentStatus != null">
+                AND current_status = #{currentStatus,jdbcType=INTEGER}
+            </if>
+            <if test="businessLineId != null">
+                AND business_line_id = #{businessLineId,jdbcType=BIGINT}
+            </if>
+        </where>
+        ORDER BY create_time DESC
+    </select>
+
 </mapper>

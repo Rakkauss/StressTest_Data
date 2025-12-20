@@ -25,4 +25,9 @@ public interface TestUserMapper {
     List<TestUser> queryUserList(@Param("userType") Integer userType);
     
     List<TestUser> selectUsersNeedFill(@Param("userType") Integer userType);
+    
+    List<java.util.Map<String, Object>> selectUserDataForExport(@Param("userType") Integer userType,
+                                                                @Param("userStatus") Integer userStatus);
+    
+    List<java.util.Map<String, Object>> selectUserStatistics(@Param("userType") Integer userType);
 }

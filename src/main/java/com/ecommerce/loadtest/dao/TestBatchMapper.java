@@ -26,5 +26,8 @@ public interface TestBatchMapper {
     List<TestBatch> selectBatchListByStatus(@Param("status") Integer status);
     
     Map<String, Object> selectBatchStatistics(@Param("createUser") String createUser);
+    
+    List<java.util.Map<String, Object>> selectBatchDataForExport(@Param("status") Integer status,
+                                                                 @Param("createUser") String createUser);
 }
 

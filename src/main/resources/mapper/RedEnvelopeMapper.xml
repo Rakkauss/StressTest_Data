@@ -141,4 +141,31 @@
         WHERE batch_id = #{batchId,jdbcType=BIGINT}
     </select>
 
+    <select id="selectRedEnvelopeDataForExport" resultType="java.util.Map">
+        SELECT
+            receive_id,
+            uid,
+            red_envelope_id,
+            receive_time,
+            batch_id,
+            amount,
+            status,
+            platform_type,
+            create_time,
+            update_time
+        FROM red_envelope_record
+        <where>
+            <if test="batchId != null">
+                AND batch_id = #{batchId,jdbcType=BIGINT}
+            </if>
+            <if test="status != null">
+                AND status = #{status,jdbcType=INTEGER}
+            </if>
+            <if test="platformType != null">
+                AND platform_type = #{platformType,jdbcType=INTEGER}
+            </if>
+        </where>
+        ORDER BY create_time DESC
+    </select>
+
 </mapper>
