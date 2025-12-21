@@ -7,14 +7,49 @@ package com.ecommerce.loadtest.dto;
  */
 public class RedEnvelopeQueryDTO {
     
+    /**
+     * 批次ID
+     */
     private Long batchId;
+    
+    /**
+     * 红包ID
+     */
     private Long redEnvelopeId;
+    
+    /**
+     * 用户ID
+     */
     private Long uid;
+    
+    /**
+     * 红包状态：0-待领取，1-已领取，2-已过期
+     */
     private Integer status;
+    
+    /**
+     * 平台类型：1-平台A，2-平台B
+     */
     private Integer platformType;
+    
+    /**
+     * 开始时间（时间戳）
+     */
     private Long startTime;
+    
+    /**
+     * 结束时间（时间戳）
+     */
     private Long endTime;
+    
+    /**
+     * 分页参数 - 页码
+     */
     private Integer pageNum = 1;
+    
+    /**
+     * 分页参数 - 页大小
+     */
     private Integer pageSize = 10;
     
     public RedEnvelopeQueryDTO() {
@@ -94,5 +129,20 @@ public class RedEnvelopeQueryDTO {
     
     public boolean hasValidParams() {
         return batchId != null || redEnvelopeId != null || uid != null;
+    }
+    
+    @Override
+    public String toString() {
+        return "RedEnvelopeQueryDTO{" +
+                "batchId=" + batchId +
+                ", redEnvelopeId=" + redEnvelopeId +
+                ", uid=" + uid +
+                ", status=" + status +
+                ", platformType=" + platformType +
+                ", startTime=" + startTime +
+                ", endTime=" + endTime +
+                ", pageNum=" + pageNum +
+                ", pageSize=" + pageSize +
+                '}';
     }
 }

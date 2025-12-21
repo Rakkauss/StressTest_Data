@@ -135,4 +135,120 @@
         ORDER BY create_time DESC
     </select>
 
+    <select id="selectPopularProducts" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM product_info
+        <where>
+            status = 1
+            <if test="businessLineId != null">AND business_line_id = #{businessLineId,jdbcType=INTEGER}</if>
+        </where>
+        ORDER BY stock_count DESC, create_time DESC
+        <if test="limit != null and limit > 0">LIMIT #{limit}</if>
+    </select>
+
+    <select id="selectProductsByPriceRange" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM product_info
+        <where>
+            status = 1
+            <if test="minPrice != null">AND price >= #{minPrice,jdbcType=DECIMAL}</if>
+            <if test="maxPrice != null">AND price &lt;= #{maxPrice,jdbcType=DECIMAL}</if>
+            <if test="businessLineId != null">AND business_line_id = #{businessLineId,jdbcType=BIGINT}</if>
+        </where>
+        ORDER BY price ASC
+        <if test="limit != null and limit > 0">LIMIT #{limit}</if>
+    </select>
+
+    <select id="selectProductsByCategory" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM product_info
+        <where>
+            <if test="categoryId != null">category_id = #{categoryId,jdbcType=BIGINT}</if>
+            <if test="status != null">AND status = #{status,jdbcType=INTEGER}</if>
+        </where>
+        ORDER BY create_time DESC
+        <if test="limit != null and limit > 0">LIMIT #{limit}</if>
+    </select>
+
+    <select id="selectProductsByBusinessLine" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM product_info
+        <where>
+            <if test="businessLineId != null">business_line_id = #{businessLineId,jdbcType=BIGINT}</if>
+            <if test="status != null">AND status = #{status,jdbcType=INTEGER}</if>
+        </where>
+        ORDER BY create_time DESC
+        <if test="limit != null and limit > 0">LIMIT #{limit}</if>
+    </select>
+
+    <select id="selectProductStatistics" resultType="java.util.Map">
+        SELECT
+            COUNT(*) as total_count,
+            COUNT(CASE WHEN status = 1 THEN 1 END) as active_count,
+            COUNT(CASE WHEN status = 0 THEN 1 END) as inactive_count,
+            AVG(price) as avg_price,
+            MIN(price) as min_price,
+            MAX(price) as max_price,
+            SUM(stock_count) as total_stock
+        FROM product_info
+        <where>
+            <if test="businessLineId != null">business_line_id = #{businessLineId,jdbcType=BIGINT}</if>
+        </where>
+    </select>
+
+    <select id="selectCategoryStatistics" resultType="java.util.Map">
+        SELECT
+            category_id,
+            category_name,
+            COUNT(*) as product_count,
+            AVG(price) as avg_price,
+            SUM(stock_count) as total_stock
+        FROM product_info
+        WHERE status = 1
+        GROUP BY category_id, category_name
+        ORDER BY product_count DESC
+    </select>
+
+    <select id="selectPriceDistribution" resultType="java.util.Map">
+        SELECT
+            CASE
+                WHEN price &lt; 1000 THEN '0-10元'
+                WHEN price &lt; 5000 THEN '10-50元'
+                WHEN price &lt; 10000 THEN '50-100元'
+                WHEN price &lt; 50000 THEN '100-500元'
+                ELSE '500元以上'
+            END as price_range,
+            COUNT(*) as product_count,
+            AVG(price) as avg_price
+        FROM product_info
+        <where>
+            status = 1
+            <if test="businessLineId != null">AND business_line_id = #{businessLineId,jdbcType=BIGINT}</if>
+        </where>
+        GROUP BY price_range
+        ORDER BY MIN(price)
+    </select>
+
+    <select id="selectProductIdsByBatch" resultType="java.lang.Long">
+        SELECT product_id
+        FROM product_info
+        <where>
+            <if test="status != null">status = #{status,jdbcType=INTEGER}</if>
+            <if test="categoryIds != null and categoryIds.size() > 0">
+                AND category_id IN
+                <foreach collection="categoryIds" item="categoryId" open="(" separator="," close=")">
+                    #{categoryId,jdbcType=BIGINT}
+                </foreach>
+            </if>
+            <if test="businessLineIds != null and businessLineIds.size() > 0">
+                AND business_line_id IN
+                <foreach collection="businessLineIds" item="businessLineId" open="(" separator="," close=")">
+                    #{businessLineId,jdbcType=BIGINT}
+                </foreach>
+            </if>
+        </where>
+        ORDER BY create_time DESC
+        <if test="limit != null and limit > 0">LIMIT #{limit}</if>
+    </select>
+
 </mapper>

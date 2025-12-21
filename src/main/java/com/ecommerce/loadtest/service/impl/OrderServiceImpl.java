@@ -1,16 +1,17 @@
 package com.ecommerce.loadtest.service.impl;
 
 import com.ecommerce.loadtest.service.OrderService;
+import com.ecommerce.loadtest.utils.RedisUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 /**
- * 订单服务实现类
+ * 订单服务实现类（基于Redis缓存）
  * 
  * @author rakkaus
  */
@@ -19,9 +20,12 @@ public class OrderServiceImpl implements OrderService {
     
     private static final Logger logger = LoggerFactory.getLogger(OrderServiceImpl.class);
     
-    private static final AtomicLong orderIdGenerator = new AtomicLong(100000);
-    private static final Map<Long, Map<String, Object>> orderStorage = new ConcurrentHashMap<>();
-    private static final Map<Long, List<Long>> userOrderIndex = new ConcurrentHashMap<>();
+    @Autowired
+    private RedisUtil redisUtil;
+    
+    private static final String ORDER_KEY_PREFIX = "stress:order:";
+    private static final String USER_ORDER_INDEX_PREFIX = "stress:user:orders:";
+    private static final String ORDER_ID_GENERATOR_KEY = "stress:order:id:generator";
     
     @Override
     public Long createOrder(Long userId, List<Map<String, Object>> cartItems) {
@@ -33,7 +37,11 @@ public class OrderServiceImpl implements OrderService {
         }
         
         try {
-            Long orderId = orderIdGenerator.getAndIncrement();
+            Long orderId = redisUtil.incr(ORDER_ID_GENERATOR_KEY, 1);
+            if (orderId == 1) {
+                orderId = 100000L;
+                redisUtil.set(ORDER_ID_GENERATOR_KEY, orderId);
+            }
             
             long totalPrice = 0L;
             for (Map<String, Object> item : cartItems) {
@@ -57,8 +65,11 @@ public class OrderServiceImpl implements OrderService {
             orderInfo.put("updateTime", System.currentTimeMillis());
             orderInfo.put("shippingAddress", mockGetShippingAddress(userId));
             
-            orderStorage.put(orderId, orderInfo);
-            userOrderIndex.computeIfAbsent(userId, k -> new ArrayList<>()).add(orderId);
+            redisUtil.hmset(ORDER_KEY_PREFIX + orderId, orderInfo, 86400);
+            
+            String userOrderKey = USER_ORDER_INDEX_PREFIX + userId;
+            redisUtil.sSet(userOrderKey, orderId);
+            redisUtil.expire(userOrderKey, 86400);
             
             logger.info("订单创建成功 - orderId: {}, totalPrice: {}", orderId, totalPrice);
             return orderId;
@@ -74,11 +85,14 @@ public class OrderServiceImpl implements OrderService {
         logger.info("取消订单 - orderId: {}, userId: {}, reason: {}", orderId, userId, reason);
         
         try {
-            Map<String, Object> orderInfo = orderStorage.get(orderId);
-            if (orderInfo == null) {
+            Map<Object, Object> orderInfoMap = redisUtil.hmget(ORDER_KEY_PREFIX + orderId);
+            if (orderInfoMap == null || orderInfoMap.isEmpty()) {
                 logger.warn("订单不存在 - orderId: {}", orderId);
                 return false;
             }
+            
+            Map<String, Object> orderInfo = new HashMap<>();
+            orderInfoMap.forEach((k, v) -> orderInfo.put(k.toString(), v));
             
             Long orderUserId = ((Number) orderInfo.get("userId")).longValue();
             if (!userId.equals(orderUserId)) {
@@ -96,10 +110,10 @@ public class OrderServiceImpl implements OrderService {
             List<Map<String, Object>> items = (List<Map<String, Object>>) orderInfo.get("items");
             mockRestoreInventory(items);
             
-            orderInfo.put("status", 3);
-            orderInfo.put("cancelReason", reason);
-            orderInfo.put("cancelTime", System.currentTimeMillis());
-            orderInfo.put("updateTime", System.currentTimeMillis());
+            redisUtil.hset(ORDER_KEY_PREFIX + orderId, "status", 3);
+            redisUtil.hset(ORDER_KEY_PREFIX + orderId, "cancelReason", reason);
+            redisUtil.hset(ORDER_KEY_PREFIX + orderId, "cancelTime", System.currentTimeMillis());
+            redisUtil.hset(ORDER_KEY_PREFIX + orderId, "updateTime", System.currentTimeMillis());
             
             mockSendOrderNotification(userId, orderId, "ORDER_CANCELLED");
             
@@ -117,11 +131,14 @@ public class OrderServiceImpl implements OrderService {
         logger.info("支付订单 - orderId: {}, userId: {}, paymentMethod: {}", orderId, userId, paymentMethod);
         
         try {
-            Map<String, Object> orderInfo = orderStorage.get(orderId);
-            if (orderInfo == null) {
+            Map<Object, Object> orderInfoMap = redisUtil.hmget(ORDER_KEY_PREFIX + orderId);
+            if (orderInfoMap == null || orderInfoMap.isEmpty()) {
                 logger.warn("订单不存在 - orderId: {}", orderId);
                 return false;
             }
+            
+            Map<String, Object> orderInfo = new HashMap<>();
+            orderInfoMap.forEach((k, v) -> orderInfo.put(k.toString(), v));
             
             Long orderUserId = ((Number) orderInfo.get("userId")).longValue();
             if (!userId.equals(orderUserId)) {
@@ -143,10 +160,10 @@ public class OrderServiceImpl implements OrderService {
                 return false;
             }
             
-            orderInfo.put("status", 2);
-            orderInfo.put("paymentMethod", paymentMethod);
-            orderInfo.put("paymentTime", System.currentTimeMillis());
-            orderInfo.put("updateTime", System.currentTimeMillis());
+            redisUtil.hset(ORDER_KEY_PREFIX + orderId, "status", 2);
+            redisUtil.hset(ORDER_KEY_PREFIX + orderId, "paymentMethod", paymentMethod);
+            redisUtil.hset(ORDER_KEY_PREFIX + orderId, "paymentTime", System.currentTimeMillis());
+            redisUtil.hset(ORDER_KEY_PREFIX + orderId, "updateTime", System.currentTimeMillis());
             
             mockSendOrderNotification(userId, orderId, "ORDER_PAID");
             
@@ -164,15 +181,20 @@ public class OrderServiceImpl implements OrderService {
         logger.debug("获取用户订单列表 - userId: {}, status: {}, limit: {}", userId, status, limit);
         
         try {
-            List<Long> userOrderIds = userOrderIndex.get(userId);
+            Set<Object> userOrderIds = redisUtil.sGet(USER_ORDER_INDEX_PREFIX + userId);
             if (userOrderIds == null || userOrderIds.isEmpty()) {
                 return new ArrayList<>();
             }
             
             List<Map<String, Object>> orders = new ArrayList<>();
-            for (Long orderId : userOrderIds) {
-                Map<String, Object> orderInfo = orderStorage.get(orderId);
-                if (orderInfo != null) {
+            for (Object orderIdObj : userOrderIds) {
+                Long orderId = Long.valueOf(orderIdObj.toString());
+                Map<Object, Object> orderInfoMap = redisUtil.hmget(ORDER_KEY_PREFIX + orderId);
+                
+                if (orderInfoMap != null && !orderInfoMap.isEmpty()) {
+                    Map<String, Object> orderInfo = new HashMap<>();
+                    orderInfoMap.forEach((k, v) -> orderInfo.put(k.toString(), v));
+                    
                     if (status != null && !status.equals(orderInfo.get("status"))) {
                         continue;
                     }
@@ -186,7 +208,7 @@ public class OrderServiceImpl implements OrderService {
                     
                     @SuppressWarnings("unchecked")
                     List<Map<String, Object>> items = (List<Map<String, Object>>) orderInfo.get("items");
-                    orderSummary.put("itemCount", items.size());
+                    orderSummary.put("itemCount", items != null ? items.size() : 0);
                     
                     orders.add(orderSummary);
                     
@@ -216,11 +238,14 @@ public class OrderServiceImpl implements OrderService {
         logger.debug("获取订单详情 - orderId: {}, userId: {}", orderId, userId);
         
         try {
-            Map<String, Object> orderInfo = orderStorage.get(orderId);
-            if (orderInfo == null) {
+            Map<Object, Object> orderInfoMap = redisUtil.hmget(ORDER_KEY_PREFIX + orderId);
+            if (orderInfoMap == null || orderInfoMap.isEmpty()) {
                 logger.warn("订单不存在 - orderId: {}", orderId);
                 return null;
             }
+            
+            Map<String, Object> orderInfo = new HashMap<>();
+            orderInfoMap.forEach((k, v) -> orderInfo.put(k.toString(), v));
             
             Long orderUserId = ((Number) orderInfo.get("userId")).longValue();
             if (!userId.equals(orderUserId)) {
@@ -229,8 +254,8 @@ public class OrderServiceImpl implements OrderService {
             }
             
             Map<String, Object> orderDetail = new HashMap<>(orderInfo);
-            Integer status = (Integer) orderInfo.get("status");
-            orderDetail.put("statusText", getStatusText(status));
+            Integer statusValue = (Integer) orderInfo.get("status");
+            orderDetail.put("statusText", getStatusText(statusValue));
             
             logger.debug("获取订单详情成功 - orderId: {}", orderId);
             return orderDetail;
@@ -272,8 +297,11 @@ public class OrderServiceImpl implements OrderService {
         int successCount = 0;
         for (Long orderId : orderIds) {
             try {
-                Map<String, Object> orderInfo = orderStorage.get(orderId);
-                if (orderInfo != null) {
+                Map<Object, Object> orderInfoMap = redisUtil.hmget(ORDER_KEY_PREFIX + orderId);
+                if (orderInfoMap != null && !orderInfoMap.isEmpty()) {
+                    Map<String, Object> orderInfo = new HashMap<>();
+                    orderInfoMap.forEach((k, v) -> orderInfo.put(k.toString(), v));
+                    
                     Long userId = ((Number) orderInfo.get("userId")).longValue();
                     if (cancelOrder(orderId, userId, reason)) {
                         successCount++;
@@ -296,9 +324,9 @@ public class OrderServiceImpl implements OrderService {
             Map<String, Object> statistics = new HashMap<>();
             
             if (userId != null) {
-                List<Long> userOrderIds = userOrderIndex.get(userId);
+                Set<Object> userOrderIds = redisUtil.sGet(USER_ORDER_INDEX_PREFIX + userId);
                 if (userOrderIds == null) {
-                    userOrderIds = new ArrayList<>();
+                    userOrderIds = new HashSet<>();
                 }
                 
                 int totalOrders = userOrderIds.size();
@@ -306,15 +334,17 @@ public class OrderServiceImpl implements OrderService {
                 int cancelledOrders = 0;
                 long totalAmount = 0L;
                 
-                for (Long orderId : userOrderIds) {
-                    Map<String, Object> orderInfo = orderStorage.get(orderId);
-                    if (orderInfo != null) {
-                        Integer status = (Integer) orderInfo.get("status");
-                        Long totalPrice = ((Number) orderInfo.get("totalPrice")).longValue();
+                for (Object orderIdObj : userOrderIds) {
+                    Long orderId = Long.valueOf(orderIdObj.toString());
+                    Map<Object, Object> orderInfoMap = redisUtil.hmget(ORDER_KEY_PREFIX + orderId);
+                    
+                    if (orderInfoMap != null && !orderInfoMap.isEmpty()) {
+                        Integer statusValue = (Integer) orderInfoMap.get("status");
+                        Long totalPrice = ((Number) orderInfoMap.get("totalPrice")).longValue();
                         
-                        if (status == 2) paidOrders++;
-                        if (status == 3) cancelledOrders++;
-                        if (status == 2) totalAmount += totalPrice;
+                        if (statusValue == 2) paidOrders++;
+                        if (statusValue == 3) cancelledOrders++;
+                        if (statusValue == 2) totalAmount += totalPrice;
                     }
                 }
                 
@@ -325,26 +355,7 @@ public class OrderServiceImpl implements OrderService {
                 statistics.put("totalAmount", totalAmount);
                 
             } else {
-                int totalOrders = orderStorage.size();
-                int paidOrders = 0;
-                int cancelledOrders = 0;
-                long totalAmount = 0L;
-                
-                for (Map<String, Object> orderInfo : orderStorage.values()) {
-                    Integer status = (Integer) orderInfo.get("status");
-                    Long totalPrice = ((Number) orderInfo.get("totalPrice")).longValue();
-                    
-                    if (status == 2) paidOrders++;
-                    if (status == 3) cancelledOrders++;
-                    if (status == 2) totalAmount += totalPrice;
-                }
-                
-                statistics.put("totalOrders", totalOrders);
-                statistics.put("paidOrders", paidOrders);
-                statistics.put("cancelledOrders", cancelledOrders);
-                statistics.put("pendingOrders", totalOrders - paidOrders - cancelledOrders);
-                statistics.put("totalAmount", totalAmount);
-                statistics.put("totalUsers", userOrderIndex.size());
+                statistics.put("message", "全局统计暂不支持，请指定userId");
             }
             
             return statistics;
@@ -358,42 +369,8 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public int cleanupTestOrders(Integer days) {
         logger.info("清理测试订单 - days: {}", days);
-        
-        long expireTime = System.currentTimeMillis() - (days * 24L * 60 * 60 * 1000);
-        int cleanedCount = 0;
-        
-        try {
-            Iterator<Map.Entry<Long, Map<String, Object>>> iterator = orderStorage.entrySet().iterator();
-            
-            while (iterator.hasNext()) {
-                Map.Entry<Long, Map<String, Object>> entry = iterator.next();
-                Map<String, Object> orderInfo = entry.getValue();
-                
-                Long createTime = (Long) orderInfo.get("createTime");
-                if (createTime != null && createTime < expireTime) {
-                    Long orderId = entry.getKey();
-                    Long userId = ((Number) orderInfo.get("userId")).longValue();
-                    
-                    List<Long> userOrderIds = userOrderIndex.get(userId);
-                    if (userOrderIds != null) {
-                        userOrderIds.remove(orderId);
-                        if (userOrderIds.isEmpty()) {
-                            userOrderIndex.remove(userId);
-                        }
-                    }
-                    
-                    iterator.remove();
-                    cleanedCount++;
-                }
-            }
-            
-            logger.info("清理测试订单完成 - 清理数量: {}", cleanedCount);
-            return cleanedCount;
-            
-        } catch (Exception e) {
-            logger.error("清理测试订单失败", e);
-            return 0;
-        }
+        logger.warn("Redis模式下，订单会自动过期（TTL=24小时），无需手动清理");
+        return 0;
     }
     
     private String getStatusText(Integer status) {

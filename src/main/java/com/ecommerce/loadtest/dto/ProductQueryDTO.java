@@ -9,16 +9,59 @@ import java.util.List;
  */
 public class ProductQueryDTO {
     
+    /**
+     * 平台类型：1-平台A，2-平台B
+     */
     private Integer platformType;
+    
+    /**
+     * 业务线ID列表
+     */
     private List<Integer> businessLineIds;
+    
+    /**
+     * 页面大小（商品数量上限）
+     */
     private Integer pageSize;
+    
+    /**
+     * 分类ID列表
+     */
     private List<Integer> categoryIds;
+    
+    /**
+     * 商品状态列表：1-正常，0-下架，2-售罄
+     */
     private List<Integer> statusList;
+    
+    /**
+     * 最小价格
+     */
     private Double minPrice;
+    
+    /**
+     * 最大价格
+     */
     private Double maxPrice;
+    
+    /**
+     * 关键词搜索
+     */
     private String keyword;
+    
+    /**
+     * 排序字段：price-价格，createTime-创建时间，stockCount-库存
+     */
     private String sortField;
+    
+    /**
+     * 排序方向：asc-升序，desc-降序
+     */
     private String sortDirection = "desc";
+    
+    /**
+     * 是否包含库存为0的商品
+     */
     private Boolean includeOutOfStock = false;
     
     public ProductQueryDTO() {
@@ -124,5 +167,22 @@ public class ProductQueryDTO {
             return defaultSize;
         }
         return Math.min(pageSize, maxSize);
+    }
+    
+    @Override
+    public String toString() {
+        return "ProductQueryDTO{" +
+                "platformType=" + platformType +
+                ", businessLineIds=" + businessLineIds +
+                ", pageSize=" + pageSize +
+                ", categoryIds=" + categoryIds +
+                ", statusList=" + statusList +
+                ", minPrice=" + minPrice +
+                ", maxPrice=" + maxPrice +
+                ", keyword='" + keyword + '\'' +
+                ", sortField='" + sortField + '\'' +
+                ", sortDirection='" + sortDirection + '\'' +
+                ", includeOutOfStock=" + includeOutOfStock +
+                '}';
     }
 }
