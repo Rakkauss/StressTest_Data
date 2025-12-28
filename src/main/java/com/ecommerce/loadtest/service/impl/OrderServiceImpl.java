@@ -30,7 +30,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public Long createOrder(Long userId, List<Map<String, Object>> cartItems) {
         logger.info("创建订单 - userId: {}, 商品数: {}", userId, cartItems.size());
-        
+        //可调用真实的服务
         if (cartItems == null || cartItems.isEmpty()) {
             logger.warn("购物车为空 - userId: {}", userId);
             return null;
